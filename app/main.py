@@ -423,3 +423,54 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+
+
+# ── 5. OAuth 登录 ──
+
+OAUTH_APP_ID = ""  # 黑客松广场创建项目后填入
+OAUTH_APP_KEY = ""  # 同上
+OAUTH_REDIRECT_URI = ""  # 部署后的回调地址
+
+@app.get("/api/auth/login")
+def oauth_login(redirect_uri: str = ""):
+    """返回知乎 OAuth 授权 URL"""
+    uri = redirect_uri or OAUTH_REDIRECT_URI
+    if not OAUTH_APP_ID:
+        return {"url": "", "msg": "OAuth app_id 未配置，请先在黑客松广场创建项目"}
+    auth_url = f"https://openapi.zhihu.com/authorize?redirect_uri={uri}&app_id={OAUTH_APP_ID}&response_type=code"
+    return {"url": auth_url}
+
+
+@app.post("/api/auth/callback")
+async def oauth_callback(code: str):
+    """用 authorization_code 换取 access_token"""
+    if not OAUTH_APP_ID or not OAUTH_APP_KEY:
+        raise HTTPException(400, "OAuth 未配置")
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(
+            "https://openapi.zhihu.com/oauth/access_token",
+            json={"app_id": OAUTH_APP_ID, "app_key": OAUTH_APP_KEY, "code": code},
+        )
+        data = r.json()
+    if "access_token" not in data:
+        raise HTTPException(400, f"获取 token 失败: {data}")
+    # 用 token 获取用户信息
+    token = data["access_token"]
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.get(
+            "https://openapi.zhihu.com/oauth/user_info",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        user_info = r.json()
+    return {"access_token": token, "user_info": user_info}
+
+
+@app.get("/api/auth/user")
+async def get_user_info(token: str):
+    """用 access_token 获取用户信息"""
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.get(
+            "https://openapi.zhihu.com/oauth/user_info",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        return r.json()

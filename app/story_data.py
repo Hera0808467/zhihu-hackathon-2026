@@ -262,7 +262,7 @@ HUATANGCHUN = StoryScript(
                         text="",
                         input_mode=InputMode.FREE),
             ],
-            routes=[RouteCondition(condition="default", next="act2_bond")],
+            routes=[RouteCondition(condition="default", next="act2_peiyu_bully")],
         ),
 
         "act2_cake": StoryNode(
@@ -278,7 +278,7 @@ HUATANGCHUN = StoryScript(
                         text="裴琰信任值 +8",
                         card_type="当前线索"),
             ],
-            routes=[RouteCondition(condition="default", next="act2_bond")],
+            routes=[RouteCondition(condition="default", next="act2_peiyu_bully")],
         ),
 
         "act2_silent": StoryNode(
@@ -292,6 +292,89 @@ HUATANGCHUN = StoryScript(
                         emotion_tag="失落"),
             ],
             routes=[RouteCondition(condition="default", next="act2_bond")],
+        ),
+
+
+        # ─── 第二幕：冲突节点 ───
+        "act2_peiyu_bully": StoryNode(
+            node_id="act2_peiyu_bully",
+            act=2,
+            scene_name="采桑宫院子",
+            scene_description="裴瑜带着几个小太监闯入采桑宫，看到裴琰时，眼里满是轻蔑。",
+            progress=62,
+            segments=[
+                Segment(speaker="旁白", speaker_type=SpeakerType.NARRATOR,
+                        text="第三天，麻烦来了。裴瑜不知从哪听说了裴琰被送到采桑宫的消息。"),
+                Segment(speaker="裴瑜", speaker_type=SpeakerType.BOT,
+                        text="哟，废妃的崽子，在这吃得挺好嘛。这枣花糕也配你吃？",
+                        input_mode=InputMode.FIXED, emotion_tag="嘲讽"),
+                Segment(speaker="裴琰", speaker_type=SpeakerType.BOT,
+                        text="（裴琰攥紧拳头，低着头一言不发。）",
+                        emotion_tag="隐忍"),
+            ],
+            choices=[
+                Choice(text="挡在裴琰面前：「四殿下，采桑宫不欢迎不请自来的客人。」",
+                       next="act2_protect_peiyan",
+                       changes={"val": 10, "wentang_peiyan": 20, "wentang_peiyu": -10, "addFlag": "protected_peiyan"},
+                       influence_hint="裴琰眼眶泛红，裴瑜气得跺脚"),
+                Choice(text="假装没看见，低头继续做针线",
+                       next="act2_bond",
+                       changes={"wentang_peiyan": -5},
+                       influence_hint="裴琰的眼神暗了下去"),
+                Choice(text="赔笑脸：「四殿下来了？快坐，臣妾给你做点心。」",
+                       next="act2_bond",
+                       changes={"wentang_peiyu": 5, "wentang_peiyan": -10},
+                       influence_hint="裴琰安静地退到了角落"),
+            ],
+        ),
+
+        "act2_protect_peiyan": StoryNode(
+            node_id="act2_protect_peiyan",
+            act=2,
+            scene_name="采桑宫院子",
+            progress=65,
+            segments=[
+                Segment(speaker="裴瑜", speaker_type=SpeakerType.BOT,
+                        text="你——你算什么东西！我可是皇后娘娘养大的！",
+                        emotion_tag="气急败坏"),
+                Segment(speaker="旁白", speaker_type=SpeakerType.NARRATOR,
+                        text="裴瑜甩袖而去，身后的小太监们慌忙跟上。你感到一只小手悄悄攥住了你的衣角。"),
+                Segment(speaker="裴琰", speaker_type=SpeakerType.BOT,
+                        text="……母妃，你不怕他去告状吗？",
+                        emotion_tag="担忧又感动"),
+                Segment(speaker="温棠", speaker_type=SpeakerType.PLAYER,
+                        text="",
+                        input_mode=InputMode.FREE),
+            ],
+            routes=[RouteCondition(condition="default", next="act2_empress_warning")],
+        ),
+
+        "act2_empress_warning": StoryNode(
+            node_id="act2_empress_warning",
+            act=2,
+            scene_name="采桑宫正殿",
+            scene_description="傍晚，皇后身边的仇公公带来了一道口谕。",
+            progress=68,
+            segments=[
+                Segment(speaker="旁白", speaker_type=SpeakerType.NARRATOR,
+                        text="果然，傍晚时分，仇公公就来了。"),
+                Segment(speaker="系统", speaker_type=SpeakerType.SYSTEM,
+                        text="【剧情背景】仇公公是皇后的心腹，在宫中人人避之不及。他的出现意味着皇后已经知道了今天的事。",
+                        card_type="当前线索"),
+                Segment(speaker="陈嬷嬷", speaker_type=SpeakerType.BOT,
+                        text="（低声）贵人，来者不善。您千万别硬顶，先忍一忍。",
+                        emotion_tag="紧张"),
+            ],
+            choices=[
+                Choice(text="恭敬接旨，不做辩解",
+                       next="act2_bond",
+                       changes={"val": -5, "addFlag": "empress_warned"},
+                       influence_hint="皇后暂时没有更多动作，但你知道她在看着"),
+                Choice(text="委婉解释：「臣妾只是照顾陛下交代的孩子……」",
+                       next="act2_bond",
+                       changes={"val": 5, "wentang_peirong": 5, "addFlag": "used_emperor_shield"},
+                       influence_hint="搬出皇帝，仇公公脸色变了变"),
+            ],
         ),
 
         "act2_bond": StoryNode(
