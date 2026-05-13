@@ -108,11 +108,236 @@ body {
 
 /* 结局 */
 .ending-screen { align-items: center; justify-content: center; text-align: center; padding: 40px 20px; }
-.ending-screen .type { font-size: 14px; color: #f0c27f; margin-bottom: 8px; letter-spacing: 4px; }
-.ending-screen h2 { font-size: 28px; color: #f0c27f; margin-bottom: 20px; font-weight: 300; }
-.ending-screen .desc { color: #b8a88a; line-height: 2; margin-bottom: 16px; max-width: 500px; }
-.ending-screen .closing { color: #888; font-style: italic; line-height: 2; max-width: 500px; margin-bottom: 30px; }
-.ending-screen .stats { font-size: 13px; color: #666; margin-top: 20px; }
+
+/* 结局加载动画 */
+.ending-generating {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  padding: 60px 20px; color: #888;
+}
+.ending-generating .spinner {
+  width: 40px; height: 40px; border: 2px solid #333;
+  border-top-color: #f0c27f; border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.ending-generating p { font-size: 14px; letter-spacing: 2px; }
+
+/* 分享卡片 */
+.share-card {
+  width: 100%; max-width: 480px; margin: 0 auto;
+  background: linear-gradient(160deg, #12111a 0%, #1a1208 60%, #0f1420 100%);
+  border: 1px solid #f0c27f44;
+  border-radius: 16px; padding: 28px 24px 20px;
+  text-align: center; position: relative; overflow: hidden;
+}
+.share-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, #f0c27f, transparent);
+}
+.share-card .story-tag {
+  display: inline-block; font-size: 11px; color: #f0c27f99;
+  border: 1px solid #f0c27f33; border-radius: 20px;
+  padding: 3px 12px; letter-spacing: 2px; margin-bottom: 18px;
+}
+.share-card .ending-badge {
+  font-size: 12px; color: #f0c27f; letter-spacing: 4px; margin-bottom: 8px;
+}
+.share-card h2 {
+  font-size: 26px; color: #f5dfa0; font-weight: 300; letter-spacing: 3px;
+  margin-bottom: 20px; line-height: 1.4;
+}
+.share-card .players-row {
+  display: flex; align-items: center; justify-content: center; gap: 0;
+  margin-bottom: 20px;
+}
+.share-card .player-pill {
+  background: #f0c27f18; border: 1px solid #f0c27f44;
+  border-radius: 20px; padding: 6px 14px;
+  font-size: 13px; color: #e8d5a3; line-height: 1.4;
+}
+.share-card .player-pill .zh-id { font-size: 11px; color: #f0c27f; display: block; }
+.share-card .player-pill .role-name { font-weight: 500; }
+.share-card .vs-dot {
+  font-size: 18px; color: #f0c27f55; padding: 0 10px;
+}
+.share-card .divider {
+  height: 1px; background: linear-gradient(90deg, transparent, #f0c27f33, transparent);
+  margin: 16px 0;
+}
+.share-card .plots-row {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 14px;
+}
+.share-card .plot-tag {
+  background: #f0c27f11; border: 1px solid #f0c27f33;
+  border-radius: 12px; padding: 4px 10px;
+  font-size: 11px; color: #c9a870; letter-spacing: 1px;
+}
+.share-card .achievement-row {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-bottom: 16px;
+}
+.share-card .achievement-badge {
+  background: linear-gradient(135deg, #2a1f08, #3a2a10);
+  border: 1px solid #c9a870; border-radius: 10px;
+  padding: 8px 16px; font-size: 12px; color: #f0d080;
+  display: flex; align-items: center; gap: 6px;
+}
+.share-card .achievement-badge .icon { font-size: 16px; }
+.share-card .highlights-block {
+  text-align: left; margin-bottom: 16px;
+}
+.share-card .highlights-block .hl-label {
+  font-size: 10px; color: #f0c27f77; letter-spacing: 3px; text-align: center; margin-bottom: 10px;
+}
+.share-card .hl-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 10px; margin-bottom: 6px;
+  background: #f0c27f08; border-left: 2px solid #f0c27f44;
+  border-radius: 0 6px 6px 0;
+  font-size: 12px; color: #b8a88a; line-height: 1.6;
+}
+.share-card .quote-block {
+  background: #f0c27f0a; border: 1px solid #f0c27f22;
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;
+  font-size: 13px; color: #c8b890; line-height: 1.8;
+  font-style: italic; position: relative;
+}
+.share-card .quote-block::before {
+  content: '\201C'; font-size: 28px; color: #f0c27f44;
+  position: absolute; top: 2px; left: 10px; line-height: 1;
+}
+.share-card .duo-story {
+  background: linear-gradient(135deg, #1e1608, #16120a);
+  border: 1px solid #f0c27f33;
+  border-radius: 10px; padding: 16px 18px; margin-bottom: 16px;
+  font-size: 13px; color: #c8b890; line-height: 2;
+  text-align: left; position: relative;
+}
+.share-card .duo-story::before {
+  content: ''; display: block;
+  font-size: 10px; color: #f0c27f88; letter-spacing: 3px;
+  margin-bottom: 8px; text-align: center;
+}
+.share-card .duo-story-label {
+  font-size: 10px; color: #f0c27f88; letter-spacing: 3px;
+  text-align: center; margin-bottom: 10px; display: block;
+}
+.share-card .cta {
+  font-size: 12px; color: #f0c27fcc; letter-spacing: 2px;
+  padding: 10px 0 2px; border-top: 1px solid #f0c27f22; margin-top: 4px;
+}
+.share-card .stats-row {
+  font-size: 11px; color: #55504a; margin-top: 10px; letter-spacing: 1px;
+}
+
+/* ── 双人对话分屏 ── */
+#screen-dual {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+#screen-dual.active { display: flex; }
+
+.dual-sub-header {
+  display: flex;
+  align-items: stretch;
+  background: #0d1b35;
+  border-bottom: 1px solid #2a2a4a;
+}
+.dual-panel-label {
+  flex: 1;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dual-panel-label.right { justify-content: flex-end; text-align: right; }
+.dual-panel-label .char-name { font-size: 15px; letter-spacing: 2px; }
+.dual-panel-label .char-tag  { font-size: 10px; color: #888; margin-top: 2px; letter-spacing: 1px; }
+.dual-panel-label.left  .char-name { color: #f0c27f; }
+.dual-panel-label.right .char-name { color: #c0a8e0; }
+.dual-center-badge {
+  display: flex; align-items: center; padding: 0 18px;
+  font-size: 10px; color: #444; letter-spacing: 3px;
+  border-left: 1px solid #2a2a4a; border-right: 1px solid #2a2a4a;
+  white-space: nowrap;
+}
+.dual-back-btn {
+  padding: 0 14px; background: none; border: none; color: #555;
+  font-size: 18px; cursor: pointer; transition: color 0.2s;
+  display: flex; align-items: center;
+}
+.dual-back-btn:hover { color: #f0c27f; }
+
+.dual-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+.dual-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+.dual-panel.left { border-right: 1px solid #2a2a4a; }
+
+.dual-chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 10px;
+  scroll-behavior: smooth;
+}
+/* 复用 message 样式，在分屏里缩小字号 */
+#screen-dual .msg-narrator {
+  font-size: 12px; margin: 6px 6px; padding: 8px 12px;
+}
+#screen-dual .msg-system {
+  font-size: 11px; margin: 6px 6px; padding: 7px 10px;
+}
+#screen-dual .msg-character { padding: 0 6px; }
+#screen-dual .msg-character .bubble {
+  font-size: 13px; padding: 8px 12px; line-height: 1.7;
+}
+#screen-dual .scene-card { margin: 6px 6px; padding: 12px 14px; }
+#screen-dual .scene-card .scene-name { font-size: 15px; }
+#screen-dual .scene-card .act-title  { font-size: 10px; }
+#screen-dual .choices-area { padding: 8px 10px; background: #0d1b35; }
+#screen-dual .choices-area h4 { font-size: 11px; margin-bottom: 7px; }
+#screen-dual .choice-btn {
+  padding: 9px 12px; font-size: 12px; margin-bottom: 5px; border-radius: 6px;
+}
+/* 右侧面板选项悬停用紫色 */
+.dual-panel.right .choice-btn:hover { border-color: #c0a8e0; }
+
+.dual-input-bar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #0d1b35;
+  border-top: 1px solid #2a2a4a;
+}
+.dual-input-bar input {
+  flex: 1; padding: 7px 12px;
+  background: #1a1a2e; border: 1px solid #333;
+  border-radius: 16px; color: #e0d5c1;
+  font-family: inherit; font-size: 13px; outline: none;
+  transition: border-color 0.2s;
+}
+.dual-panel.left  .dual-input-bar input:focus { border-color: #f0c27f; }
+.dual-panel.right .dual-input-bar input:focus { border-color: #c0a8e0; }
+.dual-send-btn {
+  padding: 7px 14px; border: none; border-radius: 16px;
+  font-family: inherit; font-size: 13px; cursor: pointer;
+  white-space: nowrap; transition: opacity 0.2s;
+}
+.dual-panel.left  .dual-send-btn { background: #f0c27f; color: #1a1a2e; }
+.dual-panel.right .dual-send-btn { background: #c0a8e0; color: #1a1a2e; }
+.dual-send-btn:hover { opacity: 0.85; }
+.dual-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* 底部输入栏 */
 .chat-input-bar {
@@ -170,7 +395,8 @@ body {
       <div class="genre-tags">
         <span>言情</span><span>宫斗宅斗</span><span>HE</span><span>救赎</span><span>治愈</span><span>古代</span>
       </div>
-      <button class="btn" onclick="showRoleSelect()">创建房间</button>
+      <button class="btn" onclick="showRoleSelect()">进入世界</button>
+      <button class="btn" onclick="showDual()" style="margin-top:12px; font-size:14px; border-color:#c0a8e066; color:#c0a8e0;">双人对话</button>
       <div style="margin-top:12px;">
         <input type="text" id="join-room-id" placeholder="输入房间号加入" style="padding:8px 12px; border-radius:6px; border:1px solid #444; background:#111; color:#e0d5c1; width:180px; font-size:14px;" />
         <button class="btn" style="margin-left:8px; padding:8px 16px;" onclick="joinExistingRoom()">加入房间</button>
@@ -205,13 +431,65 @@ body {
 
   <!-- 结局 -->
   <div class="screen" id="screen-ending">
-    <div class="ending-screen">
-      <div class="type" id="ending-type"></div>
-      <h2 id="ending-title"></h2>
-      <div class="desc" id="ending-desc"></div>
-      <div class="closing" id="ending-closing"></div>
-      <button class="btn" onclick="location.reload()">重新开始</button>
-      <div class="stats" id="ending-stats"></div>
+    <div class="ending-screen" id="ending-content">
+      <!-- 动态填充 -->
+    </div>
+  </div>
+
+  <!-- 双人对话分屏 -->
+  <div id="screen-dual">
+    <!-- 副标题栏：左角色 | VS | 右角色 + 返回 -->
+    <div class="dual-sub-header">
+      <div class="dual-panel-label left">
+        <div>
+          <div class="char-name" id="dual-name-left">温棠</div>
+          <div class="char-tag">玩家甲</div>
+        </div>
+      </div>
+      <div class="dual-center-badge">VS</div>
+      <div class="dual-panel-label right">
+        <div>
+          <div class="char-name" id="dual-name-right">裴容</div>
+          <div class="char-tag">玩家乙</div>
+        </div>
+      </div>
+      <button class="dual-back-btn" onclick="show('screen-start')" title="返回">←</button>
+    </div>
+
+    <!-- 进度条复用 -->
+    <div class="progress-bar"><div class="progress-fill" id="dual-progress" style="width:0%"></div></div>
+
+    <!-- 主体：左右两块面板 -->
+    <div class="dual-body">
+
+      <!-- 左面板：温棠视角 -->
+      <div class="dual-panel left" id="dual-panel-left">
+        <div class="dual-chat" id="dual-chat-left">
+          <div class="message">
+            <div class="msg-system">温棠的视角</div>
+          </div>
+        </div>
+        <div id="dual-interaction-left"></div>
+        <div class="dual-input-bar">
+          <input type="text" id="dual-input-left" placeholder="温棠说…" maxlength="50" />
+          <button class="dual-send-btn" onclick="dualSendChat('left')">发送</button>
+        </div>
+      </div>
+
+      <!-- 右面板：裴容视角 -->
+      <div class="dual-panel right" id="dual-panel-right">
+        <div class="dual-chat" id="dual-chat-right">
+          <div class="message">
+            <div class="msg-system">裴容的视角</div>
+          </div>
+        </div>
+        <div id="dual-interaction-right"></div>
+        <div class="dual-input-bar">
+          <input type="text" id="dual-input-right" placeholder="裴容说…" maxlength="50" />
+          <button class="dual-send-btn" onclick="dualSendChat('right')">发送</button>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -226,7 +504,455 @@ let currentNode = null;
 // 工具函数
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-dual').style.display = 'none';
   document.getElementById(id).classList.add('active');
+}
+
+// ── MOOK 双人模式状态 ──
+let dualGameId = '';
+let dualWs = null;
+const DUAL_USERS = { left: 'wentang_player', right: 'peirong_player' };
+const DUAL_ROLES = { left: 'wentang', right: 'peirong' };
+const DUAL_NAMES = { wentang: '温棠', peirong: '裴容' };
+let dualLoading = false;
+let lastRenderedNodeId = null;
+
+async function showDual() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-dual').style.display = 'flex';
+  await initDualGame();
+}
+
+async function initDualGame() {
+  // 清空面板
+  document.getElementById('dual-chat-left').innerHTML  = '<div class="message"><div class="msg-system">温棠的视角</div></div>';
+  document.getElementById('dual-chat-right').innerHTML = '<div class="message"><div class="msg-system">裴容的视角</div></div>';
+  document.getElementById('dual-interaction-left').innerHTML  = '';
+  document.getElementById('dual-interaction-right').innerHTML = '';
+  document.getElementById('dual-progress').style.width = '0%';
+  dualLoading = false;
+  lastRenderedNodeId = null;
+
+  try {
+    // 1. 创建 MOOK 游戏
+    const created = await api('POST', '/api/games/create', { story_id: 'huatangchun_mook' });
+    dualGameId = created.game_id;
+
+    // 2. 双人都加入
+    await api('POST', `/api/games/${dualGameId}/join`, { user_id: DUAL_USERS.left,  role_id: DUAL_ROLES.left  });
+    await api('POST', `/api/games/${dualGameId}/join`, { user_id: DUAL_USERS.right, role_id: DUAL_ROLES.right });
+
+    // 3. 启动游戏
+    const startData = await api('POST', `/api/games/${dualGameId}/start`);
+
+    // 4. 连接 WebSocket（用于跨屏同步）
+    connectDualWs();
+
+    // 5. 渲染初始节点
+    renderDualNode(startData);
+  } catch(e) {
+    console.error('MOOK 初始化失败', e);
+    appendDualMessage('left',  { type: 'system', text: '⚠️ 连接失败，请刷新重试' });
+    appendDualMessage('right', { type: 'system', text: '⚠️ 连接失败，请刷新重试' });
+  }
+}
+
+function connectDualWs() {
+  if (dualWs) { try { dualWs.close(); } catch(e){} dualWs = null; }
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  dualWs = new WebSocket(`${proto}//${location.host}/ws/games/${dualGameId}?user_id=dual_observer`);
+  dualWs.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.event === 'player_action') {
+      // 一方做了选择 → 在另一方的面板里显示这条跨屏消息
+      const actingRole = msg.data.role_id;
+      const oppositeSide = actingRole === 'wentang' ? 'right' : 'left';
+      appendDualMessage(oppositeSide, {
+        type: 'cross',
+        speaker: msg.data.role_name,
+        text: msg.data.choice_text,
+        hint: msg.data.influence_hint,
+      });
+    } else if (msg.event === 'node_update') {
+      renderDualNode(msg.data);
+    } else if (msg.event === 'game_end') {
+      setTimeout(() => showDualEndingEntry(msg.data), 600);
+    }
+  };
+  dualWs.onclose = () => { dualWs = null; };
+}
+
+function renderDualNode(node) {
+  if (!node) return;
+  // 防止 HTTP 响应与 WS node_update 双重触发同一节点
+  if (node.node_id && node.node_id === lastRenderedNodeId) return;
+  lastRenderedNodeId = node.node_id || null;
+  document.getElementById('dual-progress').style.width = (node.progress || 0) + '%';
+
+  // 清空交互区
+  document.getElementById('dual-interaction-left').innerHTML  = '';
+  document.getElementById('dual-interaction-right').innerHTML = '';
+
+  // 场景卡（双侧同步显示）
+  if (node.scene_name || node.act_title) {
+    const cardHtml = `<div class="scene-card" style="margin:6px 6px; padding:12px 14px;">
+      ${node.act_title ? `<div class="act-title">${node.act_title}</div>` : ''}
+      ${node.scene_name ? `<div class="scene-name">${node.scene_name}</div>` : ''}
+      ${node.scene_description ? `<div class="scene-desc" style="font-size:11px;">${node.scene_description}</div>` : ''}
+    </div>`;
+    appendRawHtml('left', cardHtml);
+    appendRawHtml('right', cardHtml);
+  }
+
+  // 渲染 segments（双侧同步展示旁白、角色台词）
+  const segs = node.segments || [];
+  segs.forEach((seg, i) => {
+    setTimeout(() => {
+      appendDualMessage('left',  seg);
+      appendDualMessage('right', seg);
+      if (i === segs.length - 1) {
+        setTimeout(() => {
+          if (node.is_ending) {
+            showDualEndingEntry(node);
+          } else {
+            renderDualInteraction(node);
+          }
+        }, 400);
+      }
+    }, i * 500);
+  });
+  if (segs.length === 0) {
+    if (node.is_ending) {
+      showDualEndingEntry(node);
+    } else {
+      renderDualInteraction(node);
+    }
+  }
+}
+
+function renderDualInteraction(node) {
+  const activeRole = node.mook_active_role || '';
+  const choices = node.choices || [];
+
+  // 没有指定行动方（旁白过渡节点）→ 双侧显示"继续"按钮
+  if (!activeRole || choices.length === 0) {
+    ['left', 'right'].forEach(side => {
+      const area = document.getElementById(`dual-interaction-${side}`);
+      area.innerHTML = '';
+      const div = document.createElement('div');
+      div.className = 'choices-area';
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.textContent = '继续 →';
+      btn.onclick = async () => {
+        if (dualLoading) return;
+        dualLoading = true;
+        // 清双侧，用当前 side 推进
+        document.getElementById('dual-interaction-left').innerHTML  = '<div class="choices-area" style="text-align:center;color:#888;font-size:12px;padding:12px;">推进中…</div>';
+        document.getElementById('dual-interaction-right').innerHTML = '<div class="choices-area" style="text-align:center;color:#888;font-size:12px;padding:12px;">推进中…</div>';
+        try {
+          // 纯旁白节点：用任意角色触发（用 wentang）
+          const data = await api('POST', `/api/games/${dualGameId}/mook-choose`, {
+            user_id: DUAL_USERS.left, role_id: DUAL_ROLES.left, choice_index: 0,
+          });
+          if (data.status === 'finished' || data.result) {
+            showDualEndingEntry(data.result || data);
+          } else {
+            renderDualNode(data);
+          }
+        } catch(e) {
+          appendDualMessage('left',  { type: 'system', text: '⚠️ 操作失败，请重试' });
+          appendDualMessage('right', { type: 'system', text: '⚠️ 操作失败，请重试' });
+        } finally {
+          dualLoading = false;
+        }
+      };
+      div.appendChild(btn);
+      area.appendChild(div);
+    });
+    return;
+  }
+
+  const activeSide  = activeRole === 'wentang' ? 'left' : 'right';
+  const waitingSide = activeRole === 'wentang' ? 'right' : 'left';
+  const activeColor = activeRole === 'wentang' ? '#f0c27f' : '#c0a8e0';
+
+  // 等待方：显示等待提示
+  const waitingArea = document.getElementById(`dual-interaction-${waitingSide}`);
+  waitingArea.innerHTML = `<div class="choices-area" style="text-align:center; color:#888; font-size:12px; padding:16px 10px; letter-spacing:1px;">
+    等待${DUAL_NAMES[activeRole]}做出回应…
+  </div>`;
+
+  // 行动方：显示选项
+  const activeArea = document.getElementById(`dual-interaction-${activeSide}`);
+  activeArea.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'choices-area';
+  div.innerHTML = `<h4 style="color:${activeColor}88;">请做出选择</h4>`;
+  choices.forEach(choice => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = `${choice.text}${choice.influence_hint ? `<div class="hint">💡 ${choice.influence_hint}</div>` : ''}`;
+    btn.onclick = () => dualMakeChoice(activeSide, activeRole, choice.index, choice.text);
+    div.appendChild(btn);
+  });
+  activeArea.appendChild(div);
+}
+
+async function dualMakeChoice(side, roleId, choiceIndex, choiceText) {
+  if (dualLoading) return;
+  dualLoading = true;
+
+  // 己方面板立即显示已选择的具体内容
+  appendDualMessage(side, {
+    speaker_type: 'player',
+    speaker: DUAL_NAMES[roleId],
+    text: choiceText || '（已做出选择）',
+    emotion_tag: '',
+  });
+
+  // 清空双侧交互区，显示推进中
+  document.getElementById('dual-interaction-left').innerHTML  = '<div class="choices-area" style="text-align:center;color:#888;font-size:12px;padding:12px;">剧情推进中…</div>';
+  document.getElementById('dual-interaction-right').innerHTML = '<div class="choices-area" style="text-align:center;color:#888;font-size:12px;padding:12px;">剧情推进中…</div>';
+
+  try {
+    const data = await api('POST', `/api/games/${dualGameId}/mook-choose`, {
+      user_id: DUAL_USERS[side],
+      role_id: roleId,
+      choice_index: choiceIndex,
+    });
+    if (data.status === 'finished' || data.result) {
+      showDualEndingEntry(data.result || data);
+    } else {
+      renderDualNode(data);
+    }
+  } catch(e) {
+    appendDualMessage('left',  { type: 'system', text: '⚠️ 操作失败，请重试' });
+    appendDualMessage('right', { type: 'system', text: '⚠️ 操作失败，请重试' });
+  } finally {
+    dualLoading = false;
+  }
+}
+
+// 双人自由发言：一方说的话同步显示到另一方
+async function dualSendChat(side) {
+  if (!dualGameId) return;
+  const input = document.getElementById(`dual-input-${side}`);
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  const roleId = DUAL_ROLES[side];
+  const roleName = DUAL_NAMES[roleId] || roleId;
+  const oppositeSide = side === 'left' ? 'right' : 'left';
+
+  // 己方显示发言气泡
+  appendDualMessage(side, { speaker_type: 'player', speaker: roleName, text, emotion_tag: '' });
+  // 对方收到跨屏消息
+  appendDualMessage(oppositeSide, { type: 'cross', speaker: roleName, text, hint: '' });
+
+  // 调用 speak 接口获取 AI 回复
+  try {
+    const data = await api('POST', `/api/games/${dualGameId}/speak`, {
+      user_id: DUAL_USERS[side], text,
+    });
+    if (data.ai_reply) {
+      const rep = data.ai_reply;
+      appendDualMessage('left',  { speaker_type: 'bot', speaker: rep.speaker, text: rep.text, emotion_tag: rep.emotion_tag || '' });
+      appendDualMessage('right', { speaker_type: 'bot', speaker: rep.speaker, text: rep.text, emotion_tag: rep.emotion_tag || '' });
+    }
+  } catch(e) { /* silent */ }
+}
+
+function appendDualMessage(side, seg) {
+  const chat = document.getElementById(`dual-chat-${side}`);
+  const div = document.createElement('div');
+  div.className = 'message';
+  div.style.animation = 'fadeIn 0.3s ease';
+
+  if (seg.type === 'cross') {
+    // 跨屏消息：对方的行动，在己方以斜体引用显示
+    const roleColor = seg.speaker === '温棠' ? '#f0c27f' : '#c0a8e0';
+    div.innerHTML = `
+      <div class="msg-character bot" style="opacity:0.8;">
+        <div class="speaker" style="color:${roleColor};">← ${seg.speaker} 的回应</div>
+        <div class="bubble" style="border-left:3px solid ${roleColor}55; padding-left:12px; font-style:italic; color:#aaa;">${seg.text}</div>
+        ${seg.hint ? `<div style="font-size:10px;color:#666;padding:3px 0 0 12px;">💡 ${seg.hint}</div>` : ''}
+      </div>`;
+  } else if (seg.type === 'system' || seg.speaker_type === 'system') {
+    div.innerHTML = `<div class="msg-system">${seg.text}</div>`;
+  } else if (seg.speaker_type === 'narrator' || (!seg.speaker_type && seg.input_mode === 'narration')) {
+    div.innerHTML = `<div class="msg-narrator">${seg.text}</div>`;
+  } else {
+    const isPlayer = seg.speaker_type === 'player';
+    const roleColor = seg.speaker === '温棠' ? '#f0c27f' : seg.speaker === '裴容' ? '#c0a8e0' : '#e0d5c1';
+    div.innerHTML = `
+      <div class="msg-character ${isPlayer ? 'player' : 'bot'}">
+        <div class="speaker" style="color:${roleColor};">${seg.speaker}${seg.emotion_tag ? ` · ${seg.emotion_tag}` : ''}</div>
+        <div class="bubble">${seg.text}</div>
+      </div>`;
+  }
+
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function appendRawHtml(side, html) {
+  const chat = document.getElementById(`dual-chat-${side}`);
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const el = tmp.firstElementChild || tmp;
+  chat.appendChild(el);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function showDualEndingEntry(data) {
+  document.getElementById('dual-interaction-left').innerHTML  = '';
+  document.getElementById('dual-interaction-right').innerHTML = '';
+
+  ['left', 'right'].forEach(side => {
+    appendDualMessage(side, { type: 'system', text: '✦ 故事走向了终点，你们共同书写了这段缘分 ✦' });
+    const area = document.getElementById(`dual-interaction-${side}`);
+    area.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'choices-area';
+    div.style.textAlign = 'center';
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.style.cssText = 'padding:12px 36px; font-size:14px; letter-spacing:3px; background:#f0c27f22; border-color:#f0c27f;';
+    btn.textContent = '✦ 查看结局';
+    btn.onclick = () => showDualEnding(data);
+    div.appendChild(btn);
+    area.appendChild(div);
+  });
+}
+
+async function showDualEnding(data) {
+  show('screen-ending');
+  const content = document.getElementById('ending-content');
+  content.innerHTML = `
+    <div class="ending-generating">
+      <div class="spinner"></div>
+      <p>命运正在书写你们共同的结局…</p>
+    </div>`;
+
+  const gid = data.game_id || dualGameId;
+  let endingData = data;
+  try {
+    const generated = await api('POST', `/api/games/${gid}/ending/generate`, {});
+    if (generated && !generated.detail) endingData = generated;
+  } catch(e) { /* 降级使用静态文本 */ }
+
+  const endingType  = endingData.ending_type  || '';
+  const endingTitle = endingData.ending_title || '';
+  const closing     = endingData.ending_closing || endingData.closing || '';
+  const highlights  = endingData.highlights || [];
+  const relSummary  = endingData.relationship_summary || '';
+  const duoStory    = endingData.duo_story || '';
+  const stats       = endingData.stats || {};
+
+  // 解析双人玩家信息（从 player_roles 里取知乎名，回退到默认）
+  const playerRoles = endingData.player_roles || {};
+  // player_roles: { wentang_player: "wentang", peirong_player: "peirong" }
+  // 知乎名使用 user_id 展示，角色名中文映射
+  const roleNameMap = { wentang: '温棠', peirong: '裴容', peiyan: '裴琰', peiyu: '裴瑜' };
+  let leftUserId = 'wentang_player', leftRole = 'wentang';
+  let rightUserId = 'peirong_player', rightRole = 'peirong';
+  for (const [uid, rid] of Object.entries(playerRoles)) {
+    if (rid === 'wentang') { leftUserId = uid; leftRole = rid; }
+    else if (rid === 'peirong') { rightUserId = uid; rightRole = rid; }
+  }
+  // 知乎名显示：去掉 _player 后缀，首字母大写
+  const toZhihuName = (uid) => uid.replace(/_player$/, '');
+  const leftZhName  = toZhihuName(leftUserId);
+  const rightZhName = toZhihuName(rightUserId);
+  const leftRoleName  = roleNameMap[leftRole]  || leftRole;
+  const rightRoleName = roleNameMap[rightRole] || rightRole;
+
+  const typeIcon  = { '圆满': '✦', '遗憾': '✸', '隐藏': '✧' }[endingType] || '◆';
+
+  // 成就徽章（从结局类型+标题推断，或用固定文案）
+  const achievementMap = {
+    '圆满': { icon: '✦', text: '圆满结局达成' },
+    '遗憾': { icon: '✸', text: '遗憾结局达成' },
+    '隐藏': { icon: '✧', text: '隐藏结局解锁' },
+  };
+  const ach = achievementMap[endingType] || { icon: '◆', text: '结局达成' };
+
+  // 解锁剧情数量
+  const flagsCount = stats.flags_unlocked || 0;
+  const choicesCount = stats.choices_made || 0;
+  // 拼装"共解锁 x 段剧情"文案
+  const plotTagsHtml = flagsCount > 0
+    ? `<span class="plot-tag">解锁 ${flagsCount} 段隐藏剧情</span>`
+    : '';
+  const choiceTagHtml = choicesCount > 0
+    ? `<span class="plot-tag">共同抉择 ${choicesCount} 次</span>`
+    : '';
+
+  // 高光时刻
+  const hlItems = highlights.slice(0, 3).map(h => {
+    const txt = typeof h === 'string' ? h : (h.text || '');
+    return `<div class="hl-item">${txt}</div>`;
+  }).join('');
+  const hlBlock = hlItems ? `
+    <div class="highlights-block">
+      <div class="hl-label">◈ 高光时刻</div>
+      ${hlItems}
+    </div>` : '';
+
+  // 高光发言（用 relationship_summary 或 closing 作为"金句"）
+  const quoteText = relSummary || closing;
+  const duoStoryBlock = duoStory ? `
+    <div class="duo-story">
+      <span class="duo-story-label">◈ 你们共同经历了</span>
+      ${duoStory}
+    </div>` : '';
+
+  const quoteBlock = quoteText ? `
+    <div class="quote-block">${quoteText}</div>` : '';
+
+  content.innerHTML = `
+    <div class="share-card">
+      <div class="story-tag">《画堂春》知乎盐选互动文游</div>
+      <div class="ending-badge">${typeIcon} ${endingType}结局</div>
+      <h2>${endingTitle}</h2>
+
+      <div class="players-row">
+        <div class="player-pill">
+          <span class="zh-id">${leftZhName}</span>
+          <span class="role-name">扮演 ${leftRoleName}</span>
+        </div>
+        <div class="vs-dot">×</div>
+        <div class="player-pill">
+          <span class="zh-id">${rightZhName}</span>
+          <span class="role-name">扮演 ${rightRoleName}</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      ${duoStoryBlock}
+
+      <div class="plots-row">
+        ${plotTagsHtml}
+        ${choiceTagHtml}
+        <span class="plot-tag">${endingType}结局</span>
+      </div>
+
+      <div class="achievement-row">
+        <div class="achievement-badge">
+          <span class="icon">${ach.icon}</span>${ach.text}
+        </div>
+      </div>
+
+      ${hlBlock}
+      ${quoteBlock}
+
+      <div class="cta">赶紧来《画堂春》，和朋友一起解锁专属结局 ↗</div>
+      <div class="stats-row">选择 ${choicesCount} 次 · 解锁事件 ${flagsCount} 个</div>
+    </div>
+    <button class="btn" onclick="location.reload()" style="margin-top:20px; margin-bottom:8px; width:100%; max-width:480px;">重新开始</button>`;
 }
 
 async function api(method, path, body) {
@@ -244,10 +970,17 @@ async function api(method, path, body) {
   }
 }
 
-// 创建房间 → 角色选择
+// 角色 → 剧本映射（与后端 ROLE_STORY_MAP 保持一致）
+const ROLE_STORY_MAP = {
+  peirong: 'huatangchun_peirong',
+  wentang: 'huatangchun_wentang',
+};
+
+// 开始 → 角色选择（只展示角色卡片，不创建游戏）
 async function showRoleSelect() {
-  const data = await api('POST', '/api/games/create', { story_id: 'huatangchun' });
-  gameId = data.game_id;
+  // 拉温棠版角色列表（两个版本角色相同，只取一次）
+  const data = await api('POST', '/api/games/create', { story_id: 'huatangchun_wentang' });
+  // 暂存这个 gameId，startGame 会用正确的 story 重新创建，这个丢弃
   isHost = true;
   renderRoles(data.roles, []);
 }
@@ -276,10 +1009,12 @@ function renderRoles(roles, takenRoles) {
     const taken = takenRoles.includes(role.role_id);
     const card = document.createElement('div');
     card.className = 'role-card' + (taken ? ' taken' : '');
+    const isPrimary = role.role_id === 'wentang' || role.role_id === 'peirong';
     card.innerHTML = `
       <div class="name">${role.name}${taken ? ' <span style="color:#f66;font-size:12px;">已选</span>' : ''}</div>
       <div class="identity">${role.identity}</div>
       <div class="personality">${role.personality}</div>
+      ${isPrimary ? '<div style="font-size:11px;color:#f0c27f88;margin-top:6px;">✦ 主角视角</div>' : ''}
     `;
     if (!taken) {
       card.onclick = () => {
@@ -299,8 +1034,12 @@ function renderRoles(roles, takenRoles) {
 
 let isHost = true;
 
-// 开始游戏
+// 开始游戏：根据选择的角色创建对应剧本
 async function startGame() {
+  // 根据角色路由到正确的故事剧本
+  const storyId = ROLE_STORY_MAP[selectedRole] || 'huatangchun_wentang';
+  const created = await api('POST', '/api/games/create', { story_id: storyId });
+  gameId = created.game_id;
   await api('POST', `/api/games/${gameId}/join`, { user_id: userId, role_id: selectedRole });
   if (isHost) {
     // 房主可以等人或直接开始
@@ -329,7 +1068,9 @@ function renderNode(node) {
 
   // 结局检测
   if (node.is_ending) {
-    showEnding(node);
+    // 先渲染最后的场景内容，再显示「查看结局」入口
+    // 用 finish 接口拿到完整 result
+    showEndingEntry(node);
     return;
   }
 
@@ -427,7 +1168,7 @@ function renderInteraction(node) {
       // 用 choose index 0 触发自动路由
       const data = await api('POST', `/api/games/${gameId}/choose`, { user_id: userId, choice_index: 0 });
       if (data.status === 'finished' || data.result) {
-        showEnding(data.result || data);
+        showEndingEntry(data.result || data);
       } else {
         renderNode(data);
       }
@@ -444,14 +1185,43 @@ function renderInteraction(node) {
 async function makeChoice(index) {
   const area = document.getElementById('interaction-area');
   area.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">推进剧情中...</div>';
-  
+
   const data = await api('POST', `/api/games/${gameId}/choose`, { user_id: userId, choice_index: index });
-  
+
   if (data.status === 'finished' || data.result) {
-    showEnding(data.result || data);
+    showEndingEntry(data.result || data);
   } else {
     renderNode(data);
   }
+}
+
+// 结局入口：在对话区显示「查看结局」按钮
+function showEndingEntry(resultData) {
+  const chat = document.getElementById('chat-area');
+  const area = document.getElementById('interaction-area');
+  area.innerHTML = '';
+
+  // 在对话流末尾插入一条系统提示
+  const notice = document.createElement('div');
+  notice.className = 'message';
+  notice.innerHTML = `<div class="msg-system">✦ 故事走向了终点，你的命运已然注定 ✦</div>`;
+  chat.appendChild(notice);
+  chat.scrollTop = chat.scrollHeight;
+
+  // 交互区显示「查看结局」按钮
+  const div = document.createElement('div');
+  div.className = 'choices-area';
+  div.style.textAlign = 'center';
+  const btn = document.createElement('button');
+  btn.className = 'btn';
+  btn.style.cssText = 'padding:14px 48px; font-size:16px; letter-spacing:4px; background:#f0c27f22; border-color:#f0c27f;';
+  btn.textContent = '✦ 查看结局';
+  btn.onclick = () => {
+    area.innerHTML = '';
+    showEnding(resultData);
+  };
+  div.appendChild(btn);
+  area.appendChild(div);
 }
 
 // 自由发言
@@ -487,19 +1257,83 @@ async function submitFree() {
 }
 
 // 结局
-function showEnding(data) {
+async function showEnding(data) {
   show('screen-ending');
-  document.getElementById('ending-type').textContent = data.ending_type || '';
-  document.getElementById('ending-title').textContent = data.ending_title || '';
-  document.getElementById('ending-desc').textContent = data.ending_description || '';
-  document.getElementById('ending-closing').textContent = data.ending_closing || '';
-  
-  const stats = data.stats || {};
-  document.getElementById('ending-stats').innerHTML = `
-    选择次数: ${stats.choices_made || 0} · 
-    自由对话: ${stats.free_count_used || 0} · 
-    解锁标记: ${stats.flags_unlocked || 0} · 
-    最终气运: ${stats.val_final || 0}
+  const content = document.getElementById('ending-content');
+
+  // 1. 先展示加载动画
+  content.innerHTML = `
+    <div class="ending-generating">
+      <div class="spinner"></div>
+      <p>命运正在书写你的结局…</p>
+    </div>
+  `;
+
+  // 2. 从 data 中拿到 game_id（可能直接是 result 对象，也可能需要用全局 gameId）
+  const gid = data.game_id || gameId;
+
+  // 3. 调用 AI 结局生成接口
+  let endingData = data;
+  try {
+    const generated = await api('POST', `/api/games/${gid}/ending/generate`, {});
+    if (generated && !generated.detail) {
+      endingData = generated;
+    }
+  } catch(e) {
+    // 降级：使用原始静态数据
+    console.warn('AI 结局生成失败，使用静态文本', e);
+  }
+
+  // 4. 渲染结局内容
+  const endingType = endingData.ending_type || '';
+  const endingTitle = endingData.ending_title || '';
+  const desc = endingData.ending_description || '';
+  const closing = endingData.ending_closing || '';
+  const highlights = endingData.highlights || [];
+  const relSummary = endingData.relationship_summary || '';
+  const stats = endingData.stats || {};
+  const aiGenerated = endingData.ai_generated || false;
+
+  // 结局类型样式映射
+  const typeIcon = { '圆满': '✦', '遗憾': '✸', '隐藏': '✧' }[endingType] || '◆';
+  const typeColor = { '圆满': '#f0c27f', '遗憾': '#a89070', '隐藏': '#c0a8e0' }[endingType] || '#f0c27f';
+
+  // 高光卡片 HTML
+  const highlightCards = highlights.length > 0 ? `
+    <div class="highlights-section">
+      <h4>◈ 命运转折时刻</h4>
+      ${highlights.slice(0, 3).map(h => `
+        <div class="highlight-card">
+          <div class="dot"></div>
+          <span>${typeof h === 'string' ? h : h.text}</span>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  // 关系总结 HTML
+  const relHtml = relSummary ? `
+    <div class="rel-summary">
+      <div class="rel-label">缘分轨迹</div>
+      ${relSummary}
+    </div>
+  ` : '';
+
+  content.innerHTML = `
+    <div class="type" style="color:${typeColor}; font-size:14px; margin-bottom:8px; letter-spacing:4px;">${typeIcon} ${endingType}</div>
+    <h2 style="font-size:28px; color:#f0c27f; margin-bottom:20px; font-weight:300;">${endingTitle}</h2>
+    ${aiGenerated ? '<div class="ai-badge">✨ 专属结局 · AI 生成</div>' : ''}
+    <div class="desc" style="color:#b8a88a; line-height:2; margin-bottom:16px; max-width:500px;">${desc}</div>
+    <div class="closing" style="color:#888; font-style:italic; line-height:2; max-width:500px; margin-bottom:24px;">${closing}</div>
+    ${highlightCards}
+    ${relHtml}
+    <button class="btn" onclick="location.reload()" style="margin-bottom:16px;">重新开始</button>
+    <div class="stats" style="font-size:13px; color:#555; margin-top:8px;">
+      选择 ${stats.choices_made || 0} 次 ·
+      自由对话 ${stats.free_count_used || 0} 次 ·
+      解锁事件 ${stats.flags_unlocked || 0} 个 ·
+      最终气运 ${stats.val_final || 0}
+    </div>
   `;
 }
 
@@ -566,10 +1400,12 @@ async function sendChat() {
 
 // Enter 键发送
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && document.getElementById('chat-input') === document.activeElement) {
-    e.preventDefault();
-    sendChat();
-  }
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const active = document.activeElement;
+  if (active === document.getElementById('chat-input')) sendChat();
+  else if (active === document.getElementById('dual-input-left'))  dualSendChat('left');
+  else if (active === document.getElementById('dual-input-right')) dualSendChat('right');
 });
 </script>
 </body>

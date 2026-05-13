@@ -10,7 +10,7 @@ import json, uuid, asyncio, httpx, traceback
 
 from app.models import GameSession, GameResult, GameStatus
 from app.engine import evaluate_condition, apply_changes, resolve_next_node, save_snapshot, rollback
-from app.story_data import HUATANGCHUN
+from app.story_data import HUATANGCHUN_WENTANG, HUATANGCHUN_PEIRONG, HUATANGCHUN_MOOK
 
 app = FastAPI(title="画堂春互动文游", version="0.1.0")
 
@@ -23,7 +23,12 @@ app.add_middleware(
 )
 
 # ── 内存存储 ──
-STORIES = {"huatangchun": HUATANGCHUN}
+STORIES = {
+    "huatangchun": HUATANGCHUN_WENTANG,          # 默认（向后兼容）
+    "huatangchun_wentang": HUATANGCHUN_WENTANG,  # 温棠视角
+    "huatangchun_peirong": HUATANGCHUN_PEIRONG,  # 裴容视角
+    "huatangchun_mook": HUATANGCHUN_MOOK,        # 双人 MOOK 模式
+}
 SESSIONS: dict[str, GameSession] = {}
 CONNECTIONS: dict[str, list[WebSocket]] = {}  # game_id -> ws 列表
 
@@ -86,6 +91,7 @@ def node_to_dict(game_id: str, viewer_role: str = "") -> dict:
         "ending_description": node.ending_description if node.is_ending else "",
         "ending_closing": node.ending_closing if node.is_ending else "",
         "waiting_for": s.waiting_for,
+        "mook_active_role": node.mook_active_role,
     }
 
 
@@ -93,13 +99,25 @@ def node_to_dict(game_id: str, viewer_role: str = "") -> dict:
 
 class CreateRequest(BaseModel):
     story_id: str = "huatangchun"
+    protagonist_role: str = ""  # 可选：指定主角角色，"peirong" 自动路由到裴容视角
+
+# 角色 → 剧本的映射
+ROLE_STORY_MAP = {
+    "peirong": "huatangchun_peirong",
+    "wentang": "huatangchun_wentang",
+    "mook": "huatangchun_mook",
+}
 
 @app.post("/api/games/create")
 def create_game(req: CreateRequest):
-    if req.story_id not in STORIES:
+    # 如果指定了主角角色，优先按角色路由到对应剧本
+    story_id = req.story_id
+    if req.protagonist_role and req.protagonist_role in ROLE_STORY_MAP:
+        story_id = ROLE_STORY_MAP[req.protagonist_role]
+    if story_id not in STORIES:
         raise HTTPException(404, "故事不存在")
-    story = STORIES[req.story_id]
-    s = GameSession(story_id=req.story_id)
+    story = STORIES[story_id]
+    s = GameSession(story_id=story_id)
     s.current_node_id = story.meta.start_node_id
     SESSIONS[s.game_id] = s
     return {
@@ -232,6 +250,116 @@ async def choose(game_id: str, req: ChooseRequest):
     return node_data
 
 
+# ── MOOK 双人模式：一方做选择，实时广播给另一方 ──
+
+class MookChooseRequest(BaseModel):
+    user_id: str        # 做选择的玩家 user_id
+    role_id: str        # 做选择的角色（wentang / peirong）
+    choice_index: int
+
+@app.post("/api/games/{game_id}/mook-choose")
+async def mook_choose(game_id: str, req: MookChooseRequest):
+    s = get_session(game_id)
+    if s.status != GameStatus.PLAYING:
+        raise HTTPException(400, "游戏未在进行中")
+    story = STORIES[s.story_id]
+    node = story.nodes[s.current_node_id]
+
+    # 校验：当前节点应由该角色做选择
+    if node.mook_active_role and node.mook_active_role != req.role_id:
+        raise HTTPException(400, f"当前轮到 {node.mook_active_role}，不是 {req.role_id}")
+
+    # 获取有效选项
+    visible = [c for c in node.choices if evaluate_condition(c.condition, s)]
+
+    # ── 旁白/过渡节点（无选项）：直接走 routes 推进，不需要选项索引 ──
+    if len(visible) == 0:
+        save_snapshot(s)
+        role = next((r for r in story.meta.roles if r.role_id == req.role_id), None)
+        role_name = role.name if role else req.role_id
+        s.history.append({"type": "mook_continue", "user_id": req.user_id, "role_id": req.role_id})
+        resolved = resolve_next_node(node, s)
+        if not resolved:
+            raise HTTPException(400, "当前节点无选项且无路由，无法推进")
+        s.current_node_id = resolved
+        final_node = story.nodes.get(resolved)
+        if final_node and final_node.is_ending:
+            s.status = GameStatus.FINISHED
+            result = build_result(game_id)
+            await broadcast(game_id, "game_end", result)
+            return {"status": "finished", "result": result}
+        next_n = story.nodes[s.current_node_id]
+        s.waiting_for = next_n.mook_active_role or ""
+        node_data = node_to_dict(game_id)
+        await broadcast(game_id, "node_update", node_data)
+        return node_data
+
+    if req.choice_index >= len(visible):
+        raise HTTPException(400, "选项不存在")
+    choice = visible[req.choice_index]
+
+    # 保存快照
+    save_snapshot(s)
+    # 应用变化
+    apply_changes(choice.changes, s)
+
+    # 记录历史
+    role = next((r for r in story.meta.roles if r.role_id == req.role_id), None)
+    role_name = role.name if role else req.role_id
+    s.history.append({
+        "type": "mook_choice",
+        "user_id": req.user_id,
+        "role_id": req.role_id,
+        "role_name": role_name,
+        "text": choice.text,
+        "changes": choice.changes,
+    })
+
+    # 广播「玩家行动」事件给双方（跨屏同步）
+    await broadcast(game_id, "player_action", {
+        "role_id": req.role_id,
+        "role_name": role_name,
+        "choice_text": choice.text,
+        "influence_hint": choice.influence_hint,
+        "changes": choice.changes,
+        "val": s.val,
+        "variables": s.variables,
+    })
+
+    # 跳转节点
+    next_node = story.nodes.get(choice.next)
+    if not next_node:
+        raise HTTPException(500, f"节点 {choice.next} 不存在")
+    s.current_node_id = choice.next
+
+    # 结局检测
+    if next_node.is_ending:
+        s.status = GameStatus.FINISHED
+        result = build_result(game_id)
+        await broadcast(game_id, "game_end", result)
+        return {"status": "finished", "result": result}
+
+    # 通过 routes 自动路由
+    resolved = resolve_next_node(next_node, s)
+    if resolved:
+        s.current_node_id = resolved
+        final_node = story.nodes.get(resolved)
+        if final_node and final_node.is_ending:
+            s.status = GameStatus.FINISHED
+            result = build_result(game_id)
+            await broadcast(game_id, "game_end", result)
+            return {"status": "finished", "result": result}
+
+    # 更新 waiting_for：下一个节点该哪个角色行动
+    next_n = story.nodes[s.current_node_id]
+    s.waiting_for = next_n.mook_active_role or ""
+
+    # 广播新节点给双方
+    node_data = node_to_dict(game_id)
+    await broadcast(game_id, "node_update", node_data)
+    return node_data
+
+
 class SpeakRequest(BaseModel):
     user_id: str
     text: str
@@ -291,15 +419,166 @@ def finish_game(game_id: str):
     return build_result(game_id)
 
 
+# ── 结局 AI 生成 ──
+
+@app.post("/api/games/{game_id}/ending/generate")
+async def generate_ending(game_id: str):
+    """基于玩家实际路径，用 AI 生成个性化结局文本（增强 description + closing + highlights + 关系总结）"""
+    s = get_session(game_id)
+    story = STORIES[s.story_id]
+    node = story.nodes[s.current_node_id]
+
+    # 构建玩家路径摘要
+    choice_history = [h for h in s.history if h.get("type") == "choice"]
+    choice_summary = "\n".join(
+        f"- {h['text']}" for h in choice_history
+    ) or "（无记录）"
+
+    # 高光时刻（改变量 >= 10 的选择）
+    highlights = []
+    for h in choice_history:
+        changes = h.get("changes", {})
+        if any(abs(v) >= 10 for v in changes.values() if isinstance(v, int)):
+            highlights.append(h["text"])
+
+    # 自由对话摘要
+    free_dialogs = [h for h in s.history if h.get("type") in ("free", "ai_reply")]
+    free_summary = "\n".join(
+        f"  {h.get('role','?')}说：{h.get('text','')}" for h in free_dialogs[-8:]
+    ) if free_dialogs else "（无自由对话）"
+
+    # 关系数值
+    rel = {k.replace("wentang_", ""): v for k, v in s.variables.items() if k.startswith("wentang_")}
+    rel_text = "、".join(f"{k}好感度{v}" for k, v in rel.items()) if rel else "（无关系数据）"
+
+    # 已解锁的 flags
+    flags_text = "、".join(s.flags) if s.flags else "（无）"
+
+    ending_type = node.ending_type if node.is_ending else "未完成"
+    ending_title = node.ending_title if node.is_ending else ""
+    # 静态预写文本作为参考基底
+    base_desc = node.ending_description if node.is_ending else ""
+    base_closing = node.ending_closing if node.is_ending else ""
+
+    # 获取角色信息（双人模式取两位）
+    role_name_map = {"wentang": "温棠", "peirong": "裴容", "peiyan": "裴琰", "peiyu": "裴瑜"}
+    player_names = []
+    for uid, rid in s.player_roles.items():
+        rname = role_name_map.get(rid) or next((r.name for r in story.meta.roles if r.role_id == rid), rid)
+        player_names.append(rname)
+    players_desc = "与".join(player_names) if player_names else "玩家"
+
+    player_role_id = next(iter(s.player_roles.values()), "wentang") if s.player_roles else "wentang"
+    player_role = next((r for r in story.meta.roles if r.role_id == player_role_id), None)
+    player_name = player_role.name if player_role else "你"
+
+    system_prompt = f"""你是《{story.meta.title}》的叙事者，正在为双人玩家生成专属结局卡片文案。
+
+故事背景：{story.meta.world_setting}
+本局玩家：{players_desc}
+结局类型：{ending_type} — {ending_title}
+
+你的任务：根据两位玩家真实的游戏路径，生成有温度的专属结局文案。
+
+写作规范：
+1. duo_story（开场叙事）：100字以内的第三人称叙述，用"他们"指代两位玩家，把真实发生的2-3个关键选择或对话细节编织成一段感人的故事回顾。必须引用实际发生的选择内容，不可虚构。结尾一句话点出这段缘分的意义。
+2. description（结局事件叙述）：100字以内，融入关键选择，让玩家感受到"我的选择造就了这个结局"
+3. closing（余韵收束语）：40字以内，情绪层，给玩家留下回味的空间
+4. highlights：从玩家路径中提炼2-3个最关键的"命运转折时刻"，每条15字以内
+5. relationship_summary：一句话金句，总结这段共同经历的情感走向，适合截图分享
+
+参考基底（可化用，不要照抄）：
+description基底：{base_desc}
+closing基底：{base_closing}
+
+请严格按以下 JSON 格式返回，不要有其他内容：
+{{
+  "duo_story": "...",
+  "description": "...",
+  "closing": "...",
+  "highlights": ["...", "...", "..."],
+  "relationship_summary": "..."
+}}"""
+
+    user_prompt = f"""玩家的游戏路径记录：
+
+【做出的选择（共{len(choice_history)}次）】
+{choice_summary}
+
+【自由对话片段】
+{free_summary}
+
+【关系数值】
+{rel_text}
+
+【解锁事件】
+{flags_text}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=45) as client:
+            r = await client.post(
+                f"{LLM_BASE_URL}/chat/completions",
+                headers={"Authorization": f"Bearer {LLM_API_KEY}"},
+                json={
+                    "model": LLM_MODEL,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    "max_tokens": 800,
+                    "temperature": 0.85,
+                    "response_format": {"type": "json_object"},
+                },
+            )
+            data = r.json()
+            raw = data["choices"][0]["message"]["content"].strip()
+            ai_result = json.loads(raw)
+    except Exception:
+        traceback.print_exc()
+        # 降级：返回静态文本
+        ai_result = {
+            "duo_story": "",
+            "description": base_desc,
+            "closing": base_closing,
+            "highlights": highlights[:3],
+            "relationship_summary": rel_text,
+        }
+
+    # 组合最终结局数据
+    base_result = build_result(game_id)
+    return {
+        **base_result,
+        # AI 生成覆盖静态文本
+        "duo_story": ai_result.get("duo_story", ""),
+        "ending_description": ai_result.get("description", base_desc),
+        "ending_closing": ai_result.get("closing", base_closing),
+        "highlights": [
+            {"text": t, "type": "命运转折"} for t in ai_result.get("highlights", highlights[:3])
+        ],
+        "relationship_summary": ai_result.get("relationship_summary", rel_text),
+        "ai_generated": True,
+    }
+
+
 # ── 3. 故事列表 ──
 
 @app.get("/api/stories")
 def list_stories():
-    return [
-        {"story_id": sid, "title": s.meta.title, "author": s.meta.author,
-         "genre": s.meta.genre, "max_players": s.meta.max_players}
-        for sid, s in STORIES.items()
-    ]
+    seen = set()
+    result = []
+    for sid, s in STORIES.items():
+        if s.meta.story_id in seen:
+            continue
+        seen.add(s.meta.story_id)
+        result.append({
+            "story_id": s.meta.story_id,
+            "title": s.meta.title,
+            "author": s.meta.author,
+            "genre": s.meta.genre,
+            "max_players": s.meta.max_players,
+            "protagonist": next((r.name for r in s.meta.roles if r.required), ""),
+        })
+    return result
 
 
 # ── 4. WebSocket ──
@@ -350,6 +629,7 @@ def build_result(game_id: str) -> dict:
         "ending_closing": node.ending_closing if node.is_ending else "",
         "highlights": highlights[:5],
         "relationship_graph": rel,
+        "player_roles": s.player_roles,
         "stats": {
             "choices_made": sum(1 for h in s.history if h.get("type") == "choice"),
             "free_count_used": s.free_count_used,

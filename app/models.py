@@ -84,6 +84,7 @@ class StoryNode(BaseModel):
     ending_description: str = ""
     ending_closing: str = ""
     progress: int = 0  # 0-100
+    mook_active_role: str = ""  # 双人模式：当前该哪个角色做选择（"wentang"/"peirong"/"" 表示单人）
 
 
 class StoryMeta(BaseModel):
