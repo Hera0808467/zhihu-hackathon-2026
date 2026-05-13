@@ -151,7 +151,9 @@ async def start_game(game_id: str):
 @app.get("/api/games/{game_id}")
 def get_game(game_id: str):
     s = get_session(game_id)
-    return {**s.model_dump(), "current_node": node_to_dict(game_id)}
+    story = STORIES[s.story_id]
+    roles = [{"role_id": r.role_id, "name": r.name, "identity": r.identity, "personality": r.personality} for r in story.meta.roles]
+    return {**s.model_dump(), "current_node": node_to_dict(game_id), "roles": roles, "story_roles": roles}
 
 
 # ── 2. 游戏核心交互 ──

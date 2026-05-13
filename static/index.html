@@ -170,14 +170,19 @@ body {
       <div class="genre-tags">
         <span>言情</span><span>宫斗宅斗</span><span>HE</span><span>救赎</span><span>治愈</span><span>古代</span>
       </div>
-      <button class="btn" onclick="showRoleSelect()">进入世界</button>
+      <button class="btn" onclick="showRoleSelect()">创建房间</button>
+      <div style="margin-top:12px;">
+        <input type="text" id="join-room-id" placeholder="输入房间号加入" style="padding:8px 12px; border-radius:6px; border:1px solid #444; background:#111; color:#e0d5c1; width:180px; font-size:14px;" />
+        <button class="btn" style="margin-left:8px; padding:8px 16px;" onclick="joinExistingRoom()">加入房间</button>
+      </div>
     </div>
   </div>
 
   <!-- 角色选择 -->
   <div class="screen" id="screen-roles">
     <h3 style="color:#f0c27f; margin-bottom:4px; font-weight:300;">选择你的角色</h3>
-    <p style="font-size:13px; color:#888; margin-bottom:16px;">其他角色将由 AI 扮演</p>
+    <p style="font-size:13px; color:#888; margin-bottom:8px;">其他角色将由 AI 扮演，或邀请朋友加入</p>
+    <p style="font-size:14px; color:#f0c27f; margin-bottom:16px; user-select:all;">房间号：<strong id="room-id-display"></strong>（发给朋友即可加入）</p>
     <div class="roles-grid" id="roles-grid"></div>
     <button class="btn" id="btn-start-game" disabled onclick="startGame()">开始游戏</button>
   </div>
@@ -239,38 +244,77 @@ async function api(method, path, body) {
   }
 }
 
-// 开始 → 角色选择
+// 创建房间 → 角色选择
 async function showRoleSelect() {
   const data = await api('POST', '/api/games/create', { story_id: 'huatangchun' });
   gameId = data.game_id;
+  isHost = true;
+  renderRoles(data.roles, []);
+}
+
+// 加入已有房间
+async function joinExistingRoom() {
+  const roomId = document.getElementById('join-room-id').value.trim();
+  if (!roomId) { alert('请输入房间号'); return; }
+  gameId = roomId;
+  isHost = false;
+  try {
+    const data = await api('GET', `/api/games/${gameId}`);
+    // 过滤掉已被选择的角色
+    const takenRoles = Object.values(data.player_roles || {});
+    renderRoles(data.roles || data.story_roles, takenRoles);
+  } catch(e) {
+    alert('房间不存在或已开始: ' + (e.message || e));
+  }
+}
+
+// 渲染角色选择
+function renderRoles(roles, takenRoles) {
   const grid = document.getElementById('roles-grid');
   grid.innerHTML = '';
-  data.roles.forEach(role => {
+  roles.forEach(role => {
+    const taken = takenRoles.includes(role.role_id);
     const card = document.createElement('div');
-    card.className = 'role-card';
+    card.className = 'role-card' + (taken ? ' taken' : '');
     card.innerHTML = `
-      <div class="name">${role.name}</div>
+      <div class="name">${role.name}${taken ? ' <span style="color:#f66;font-size:12px;">已选</span>' : ''}</div>
       <div class="identity">${role.identity}</div>
       <div class="personality">${role.personality}</div>
     `;
-    card.onclick = () => {
-      document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
-      card.classList.add('selected');
-      selectedRole = role.role_id;
-      document.getElementById('btn-start-game').disabled = false;
-    };
+    if (!taken) {
+      card.onclick = () => {
+        document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedRole = role.role_id;
+        document.getElementById('btn-start-game').disabled = false;
+      };
+    }
     grid.appendChild(card);
   });
+  // 显示房间号
+  document.getElementById('room-id-display').textContent = gameId;
+  document.getElementById('btn-start-game').textContent = isHost ? '开始游戏' : '加入并开始';
   show('screen-roles');
 }
+
+let isHost = true;
 
 // 开始游戏
 async function startGame() {
   await api('POST', `/api/games/${gameId}/join`, { user_id: userId, role_id: selectedRole });
-  const data = await api('POST', `/api/games/${gameId}/start`);
-  show('screen-game');
-  document.getElementById('game-room-id').textContent = gameId;
-  renderNode(data);
+  if (isHost) {
+    // 房主可以等人或直接开始
+    const data = await api('POST', `/api/games/${gameId}/start`);
+    show('screen-game');
+    document.getElementById('game-room-id').textContent = gameId;
+    renderNode(data);
+  } else {
+    // 加入者：加入后也start（bot补位）
+    const data = await api('POST', `/api/games/${gameId}/start`);
+    show('screen-game');
+    document.getElementById('game-room-id').textContent = gameId;
+    renderNode(data);
+  }
 }
 
 // 渲染节点
