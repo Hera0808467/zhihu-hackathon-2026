@@ -49,15 +49,25 @@ def get_session(game_id: str) -> GameSession:
     return SESSIONS[game_id]
 
 
-def node_to_dict(game_id: str) -> dict:
-    """返回当前节点的展示数据"""
+def node_to_dict(game_id: str, viewer_role: str = "") -> dict:
+    """返回当前节点的展示数据，支持按角色返回不同视角"""
     s = SESSIONS[game_id]
     story = STORIES[s.story_id]
     node = story.nodes[s.current_node_id]
+    # 根据 viewer_role 选择 segments
+    if viewer_role and viewer_role in node.role_segments:
+        segments = node.role_segments[viewer_role]
+    else:
+        segments = node.segments
+    # 根据 viewer_role 选择 choices
+    if viewer_role and viewer_role in node.role_choices:
+        choices_source = node.role_choices[viewer_role]
+    else:
+        choices_source = node.choices
     # 过滤 choices（根据条件）
     visible_choices = [
         {"index": i, "text": c.text, "influence_hint": c.influence_hint}
-        for i, c in enumerate(node.choices)
+        for i, c in enumerate(choices_source)
         if evaluate_condition(c.condition, s)
     ]
     return {
@@ -68,7 +78,7 @@ def node_to_dict(game_id: str) -> dict:
         "scene_description": node.scene_description,
         "ambient": node.ambient,
         "progress": node.progress,
-        "segments": [seg.model_dump() for seg in node.segments],
+        "segments": [seg.model_dump() for seg in segments],
         "choices": visible_choices,
         "is_ending": node.is_ending,
         "ending_type": node.ending_type if node.is_ending else "",
@@ -131,7 +141,7 @@ def join_game(game_id: str, req: JoinRequest):
 
 
 @app.post("/api/games/{game_id}/start")
-async def start_game(game_id: str):
+async def start_game(game_id: str, viewer_role: str = ""):
     s = get_session(game_id)
     story = STORIES[s.story_id]
     # Bot 补位：未选的角色都由 Bot 扮演
@@ -141,11 +151,14 @@ async def start_game(game_id: str):
     for role in all_roles:
         s.variables[f"wentang_{role}"] = 0
     s.status = GameStatus.PLAYING
-    # 设置 waiting_for（主角玩家）
-    wentang_user = next((u for u, r in s.player_roles.items() if r == "wentang"), "bot")
-    s.waiting_for = wentang_user
-    await broadcast(game_id, "game_start", node_to_dict(game_id))
-    return {"status": "playing", **node_to_dict(game_id)}
+    # 设置 waiting_for（第一个加入的玩家，或温棠玩家）
+    wentang_user = next((u for u, r in s.player_roles.items() if r == "wentang"), None)
+    s.waiting_for = wentang_user or list(s.player_roles.keys())[0] if s.player_roles else "bot"
+    # 给每个玩家广播各自视角
+    for uid, role_id in s.player_roles.items():
+        node_data = node_to_dict(game_id, viewer_role=role_id)
+        await send_to_user(game_id, uid, "game_start", node_data)
+    return {"status": "playing", **node_to_dict(game_id, viewer_role=viewer_role)}
 
 
 @app.get("/api/games/{game_id}")
@@ -207,8 +220,7 @@ async def choose(game_id: str, req: ChooseRequest):
             await broadcast(game_id, "game_end", result)
             return {"status": "finished", "result": result}
     # 广播新节点
-    node_data = node_to_dict(game_id)
-    await broadcast(game_id, "node_update", node_data)
+    await broadcast_node_per_role(game_id, "node_update")
     # 状态变化广播
     await broadcast(game_id, "state_change", {
         "changes": choice.changes,
@@ -235,24 +247,28 @@ async def speak(game_id: str, req: SpeakRequest):
     # 记录历史
     s.history.append({"type": "free", "user_id": req.user_id, "role": role_id, "text": req.text})
     s.free_count_used += 1
-    # 调用 AI 生成回复（简化版：直接返回，后续接入API）
-    ai_reply = await generate_ai_reply(s, story, role_id, req.text)
     reply_data = {
         "speaker": role.name if role else role_id,
         "speaker_type": "player",
         "text": req.text,
         "emotion_tag": "",
     }
-    bot_reply = {
-        "speaker": ai_reply["speaker"],
-        "speaker_type": "bot",
-        "text": ai_reply["text"],
-        "emotion_tag": ai_reply.get("emotion", ""),
-    }
-    s.history.append({"type": "ai_reply", **bot_reply})
     await broadcast(game_id, "message", reply_data)
-    await broadcast(game_id, "message", bot_reply)
-    return {"user_message": reply_data, "ai_reply": bot_reply, "free_count_remaining": 5 - s.free_count_used}
+    # 判断是否需要AI回复：如果所有其他角色都有真人玩家，不自动AI回复
+    # 只有当存在bot角色时，才用AI回复
+    if s.bot_roles:
+        ai_reply = await generate_ai_reply(s, story, role_id, req.text)
+        bot_reply = {
+            "speaker": ai_reply["speaker"],
+            "speaker_type": "bot",
+            "text": ai_reply["text"],
+            "emotion_tag": ai_reply.get("emotion", ""),
+        }
+        s.history.append({"type": "ai_reply", **bot_reply})
+        await broadcast(game_id, "message", bot_reply)
+        return {"user_message": reply_data, "ai_reply": bot_reply, "free_count_remaining": 5 - s.free_count_used}
+    else:
+        return {"user_message": reply_data, "ai_reply": None, "free_count_remaining": 5 - s.free_count_used}
 
 
 class RollbackRequest(BaseModel):
@@ -264,8 +280,7 @@ async def do_rollback(game_id: str, req: RollbackRequest):
     ok = rollback(s, req.steps)
     if not ok:
         raise HTTPException(400, "没有可回溯的记录")
-    node_data = node_to_dict(game_id)
-    await broadcast(game_id, "node_update", node_data)
+    await broadcast_node_per_role(game_id, "node_update")
     return node_data
 
 

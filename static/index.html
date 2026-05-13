@@ -304,13 +304,13 @@ async function startGame() {
   await api('POST', `/api/games/${gameId}/join`, { user_id: userId, role_id: selectedRole });
   if (isHost) {
     // 房主可以等人或直接开始
-    const data = await api('POST', `/api/games/${gameId}/start`);
+    const data = await api('POST', `/api/games/${gameId}/start?viewer_role=${selectedRole}`);
     show('screen-game');
     document.getElementById('game-room-id').textContent = gameId;
     renderNode(data);
   } else {
     // 加入者：加入后也start（bot补位）
-    const data = await api('POST', `/api/games/${gameId}/start`);
+    const data = await api('POST', `/api/games/${gameId}/start?viewer_role=${selectedRole}`);
     show('screen-game');
     document.getElementById('game-room-id').textContent = gameId;
     renderNode(data);

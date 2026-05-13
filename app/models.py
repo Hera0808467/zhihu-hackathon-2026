@@ -75,6 +75,8 @@ class StoryNode(BaseModel):
     ambient: str = ""
     segments: list[Segment] = []
     choices: list[Choice] = []
+    role_segments: dict[str, list[Segment]] = {}  # role_id -> segments (per-role view)
+    role_choices: dict[str, list[Choice]] = {}    # role_id -> choices (per-role choices)
     routes: list[RouteCondition] = []
     is_ending: bool = False
     ending_type: str = ""  # 圆满/遗憾/隐藏
