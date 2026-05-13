@@ -1,58 +1,119 @@
-# 画堂春互动文游 · 后端
+# 画堂春 · 沉浸式多人互动文游
 
-> 知乎 Hackathon 2026 · 盐选小说沉浸式角色互动文游
+> 基于知乎盐选小说《画堂春》，将经典古言故事转化为多人实时互动的角色扮演文字冒险游戏。
 
-## 快速启动
+## ✨ 核心特色
+
+- **多人实时互动** — 2-5人同时在线，各自扮演不同角色，共同推动剧情
+- **双视角叙事** — 不同角色看到不同的旁白、内心戏和选择，体验截然不同的故事
+- **AI智能补位** — 没有真人的角色由AI扮演，保持对话自然流畅
+- **分支结局** — 3幕20+节点3种结局，玩家选择决定故事走向
+- **自由对话** — 在剧情推进之外，可以用角色身份自由交流
+
+## 🎭 角色
+
+| 角色 | 身份 | 定位 |
+|------|------|------|
+| **温棠** | 温贵人，四皇子生母 | 主角，推动剧情 |
+| **裴琰** | 三皇子，9岁 | 主角，情感核心 |
+| **裴容** | 大胤皇帝 | 配角，权力中心 |
+| **裴瑜** | 四皇子，6岁 | 配角，冲突制造 |
+| **舒贵妃** | 后宫实权人物 | 配角，对抗力量 |
+
+## 🏗️ 技术架构
+
+```
+┌─────────────┐     WebSocket      ┌──────────────┐
+│  前端 (HTML) │◄──────────────────►│  FastAPI 后端 │
+│  移动端适配   │    实时双向通信      │  异步处理     │
+└─────────────┘                    └──────┬───────┘
+                                          │
+                              ┌────────────┼────────────┐
+                              ▼            ▼            ▼
+                        剧本引擎      AI对话生成    知乎API
+                      (状态机+条件)  (LLM角色扮演)  (圈子/直答)
+```
+
+**技术栈：**
+- 后端：Python FastAPI + WebSocket + Pydantic
+- 前端：原生HTML/CSS/JS，移动端优先
+- AI：兼容OpenAI格式的LLM API（角色扮演对话生成）
+- 部署：Cloudflare Tunnel / 任意云服务器
+
+## 🚀 快速开始
+
+### 本地运行
 
 ```bash
-cd zhihu-hackathon
-source venv/bin/activate
-python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# 1. 克隆
+git clone https://github.com/Hera0808467/zhihu-hackathon-2026.git
+cd zhihu-hackathon-2026
+
+# 2. 安装依赖
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install fastapi uvicorn httpx pydantic websockets
+
+# 3. 配置LLM（可选，不配也能玩，AI回复会fallback）
+export LLM_BASE_URL="https://your-llm-api.com/v1"
+export LLM_API_KEY="your-key"
+export LLM_MODEL="your-model"
+
+# 4. 启动
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# 5. 打开浏览器
+open http://localhost:8000
 ```
 
-API 文档：http://localhost:8000/docs
+### 公网部署（手机体验）
 
-## 核心 API
+```bash
+# 方式1：Cloudflare Tunnel（免费，临时）
+cloudflared tunnel --url http://localhost:8000
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/games/create | 创建房间 |
-| POST | /api/games/{id}/join | 选角色加入 |
-| POST | /api/games/{id}/start | 开始游戏（Bot补位） |
-| POST | /api/games/{id}/choose | 做选择（guided模式） |
-| POST | /api/games/{id}/speak | 自由发言（free模式，限5次） |
-| POST | /api/games/{id}/rollback | 回溯（最多3步） |
-| POST | /api/games/{id}/finish | 生成结局报告 |
-| GET  | /api/games/{id} | 获取游戏状态 |
-| WS   | /ws/games/{id} | WebSocket 实时推送 |
+# 方式2：部署到云服务器
+# 确保8000端口开放，直接访问 http://your-ip:8000
+```
 
-## 当前进度
+## 🎮 游戏流程
 
-- [x] 数据模型（models.py）
-- [x] 剧本引擎（engine.py）
-- [x] 《画堂春》完整剧本（story_data.py）：3幕20节点3结局
-- [x] FastAPI 后端（main.py）
-- [x] WebSocket 实时推送
-- [ ] 接入知乎直答 API（free 模式 AI 回复）
-- [ ] 前端页面
+1. **玩家A** 打开链接 → 点「创建房间」→ 获得房间号 → 选择角色
+2. **玩家A** 把房间号发给朋友
+3. **玩家B** 打开链接 → 输入房间号 → 选择剩余角色
+4. 双方点「开始」→ 各自看到自己视角的剧情
+5. 做出选择 / 自由对话 → 剧情实时推进
+6. 到达三种结局之一
 
-## 文件结构
+## 📁 项目结构
 
 ```
-zhihu-hackathon/
 ├── app/
-│   ├── main.py          # FastAPI 应用
-│   ├── models.py        # 数据模型
-│   ├── engine.py        # 剧本引擎
-│   └── story_data.py    # 《画堂春》剧本
-├── scripts/
-│   └── test_api.py      # 快速测试
-├── venv/                # Python 虚拟环境
+│   ├── main.py          # API路由 + AI生成 + WebSocket
+│   ├── models.py        # 数据模型（角色/节点/会话）
+│   ├── engine.py        # 剧本引擎（条件判定/状态流转）
+│   ├── story_data.py    # 《画堂春》完整剧本数据
+│   └── zhihu_client.py  # 知乎开放平台API客户端
+├── static/
+│   └── index.html       # 前端页面（单文件）
+├── DEV_GUIDE.md         # 开发者改动指南
 └── README.md
 ```
 
-## TODO
+## 🔧 开发指南
 
-1. **接入知乎直答 API**：在 `main.py` 的 `generate_ai_reply` 函数中接入
-2. **前端**：对接 /api/games 和 WebSocket
-3. **OAuth 登录**：接入知乎 OAuth，替换 mock user_id
+见 [DEV_GUIDE.md](./DEV_GUIDE.md) — 如何修改角色风格、System Prompt、剧情节点等。
+
+## 📖 原作
+
+- 小说：《画堂春》by 鸠森
+- 来源：知乎盐选专栏
+- 类型：古言 · 宫斗 · 救赎 · HE
+
+## 🏆 知乎黑客松 2026
+
+本项目为知乎黑客松2026参赛作品，探索「盐选IP × AI互动」的新玩法。
+
+---
+
+**团队：** Huan · 靳周涵 · 郦星羽 · 阮庭萱 · 武子琳 · 江止
