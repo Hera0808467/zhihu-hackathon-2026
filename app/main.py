@@ -48,6 +48,17 @@ async def broadcast(game_id: str, event: str, data: dict):
         CONNECTIONS[game_id].remove(ws)
 
 
+async def send_to_user(game_id: str, user_id: str, event: str, data: dict):
+    """Send event to a specific user's websocket (if connected)"""
+    # For now, broadcast to all — proper per-user routing needs user→ws mapping
+    await broadcast(game_id, event, data)
+
+
+async def broadcast_node_per_role(game_id: str, event: str):
+    """Broadcast current node to all connections"""
+    await broadcast(game_id, event, node_to_dict(game_id))
+
+
 def get_session(game_id: str) -> GameSession:
     if game_id not in SESSIONS:
         raise HTTPException(404, f"房间 {game_id} 不存在")
@@ -202,6 +213,24 @@ async def choose(game_id: str, req: ChooseRequest):
     node = story.nodes[s.current_node_id]
     # 过滤有效选项
     visible = [c for c in node.choices if evaluate_condition(c.condition, s)]
+
+    # 无选项节点（过渡/旁白）：通过 routes 自动推进
+    if len(visible) == 0:
+        save_snapshot(s)
+        resolved = resolve_next_node(node, s)
+        if not resolved:
+            raise HTTPException(400, "当前节点无选项且无路由，无法推进")
+        s.current_node_id = resolved
+        s.history.append({"type": "continue", "user_id": req.user_id})
+        final_node = story.nodes.get(resolved)
+        if final_node and final_node.is_ending:
+            s.status = GameStatus.FINISHED
+            result = build_result(game_id)
+            await broadcast(game_id, "game_end", result)
+            return {"status": "finished", "result": result}
+        await broadcast(game_id, "node_update", node_to_dict(game_id))
+        return node_to_dict(game_id)
+
     if req.choice_index >= len(visible):
         raise HTTPException(400, "选项不存在")
     choice = visible[req.choice_index]
@@ -247,7 +276,7 @@ async def choose(game_id: str, req: ChooseRequest):
         "variables": s.variables,
         "influence_hint": choice.influence_hint,
     })
-    return node_data
+    return node_to_dict(game_id)
 
 
 # ── MOOK 双人模式：一方做选择，实时广播给另一方 ──
@@ -409,7 +438,7 @@ async def do_rollback(game_id: str, req: RollbackRequest):
     if not ok:
         raise HTTPException(400, "没有可回溯的记录")
     await broadcast_node_per_role(game_id, "node_update")
-    return node_data
+    return node_to_dict(game_id)
 
 
 @app.post("/api/games/{game_id}/finish")
